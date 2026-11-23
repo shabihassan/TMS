@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KIA Macca Motors — Cheque Writer</title>
+<style>
+:root{--navy:#142b4a;--blue:#245b91;--bg:#f3f6fa;--line:#dce3ec;--muted:#65758b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font:14px Arial,sans-serif;color:#172338}
+header{background:var(--navy);color:#fff;padding:20px 26px;display:flex;justify-content:space-between;align-items:center;gap:15px}
+header h1{font-size:21px;margin:0 0 5px}header p{margin:0;color:#d4dfec}
+.wrap{max-width:1250px;margin:22px auto;padding:0 16px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+button,.tab{border:0;border-radius:8px;padding:10px 14px;background:#e3eaf3;color:#18314f;cursor:pointer;font-weight:600}
+button.primary,.tab.active{background:var(--blue);color:white}button.danger{background:#fee7e7;color:#9d2020}
+.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 3px 12px #18314f0a}
+h2{font-size:18px;margin:0 0 16px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+label{display:block;font-weight:600;margin-bottom:6px;color:#34445b}input,select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:7px;font:14px Arial;background:white}
+.field.full{grid-column:1/-1}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.muted{color:var(--muted);font-size:12px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line)}th{background:#f5f8fb}
+.hidden{display:none!important}.amountwords{padding:11px;background:#f4f7fb;border-radius:7px;min-height:40px}
+#cheque{position:relative;width:100%;aspect-ratio:2.15/1;max-width:900px;margin:14px auto;border:1px dashed #9aa9ba;background:#fff;border-radius:5px;overflow:hidden;color:#111;font-family:Arial,sans-serif}
+#cheque .printfield{position:absolute;white-space:nowrap;font-size:clamp(10px,1.45vw,16px)}
+#cheque .date{right:5%;top:15%}#cheque .payee{left:17%;top:35%}#cheque .words{left:8%;top:54%;white-space:normal;width:78%;line-height:1.4}
+#cheque .amount{right:6%;top:54%;font-weight:bold}#cheque .accountpayee{left:5%;top:7%;font-size:11px;letter-spacing:2px}
+.previewnote{max-width:900px;margin:0 auto}
+.stat{display:inline-block;padding:12px 16px;background:#f2f6fb;border-radius:8px;margin:0 8px 8px 0}
+@media(max-width:700px){.grid{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}#cheque{aspect-ratio:1.65/1}}
+@media print{
+ @page{size:A4 portrait;margin:0}
+ body{background:white}.no-print,header,.tabs,.panel:not(.print-panel){display:none!important}
+ .wrap{margin:0;padding:0;max-width:none}.print-panel{border:0;box-shadow:none;margin:0;padding:0}
+ #cheque{width:100%;max-width:none;margin:0;border:0;border-radius:0;aspect-ratio:2.15/1;overflow:hidden}
+ #cheque .printfield{font-size:12pt}
+}
+</style>
+</head>
+<body>
+<header><div><h1>KIA Macca Motors — Cheque Writer</h1><p>HBL • Laser Printer • Local browser application</p></div><div>Cheque & Vendor Management</div></header>
+<div class="wrap">
+ <div class="tabs no-print">
+  <button class="tab active" data-tab="write">Prepare Cheque</button>
+  <button class="tab" data-tab="vendors">Vendors</button>
+  <button class="tab" data-tab="history">Payment History</button>
+  <button class="tab" data-tab="settings">Print Alignment</button>
+ </div>
+
+ <section id="write" class="section">
+  <div class="panel no-print">
+   <h2>Cheque details</h2>
+   <div class="grid">
+    <div class="field"><label>Vendor / Payee</label><input id="payee" list="vendorList" placeholder="Enter vendor name"><datalist id="vendorList"></datalist></div>
+    <div class="field"><label>Cheque date</label><input id="date" type="date"></div>
+    <div class="field"><label>Amount (PKR)</label><input id="amount" type="number" min="0" step="0.01" placeholder="e.g. 125000"></div>
+    <div class="field"><label>Cheque number (optional)</label><input id="chequeNo" placeholder="Enter cheque number"></div>
+    <div class="field full"><label>Amount in words</label><div id="words" class="amountwords">Amount in words will appear here.</div></div>
+    <div class="field"><label><input id="cross" type="checkbox" style="width:auto"> Account Payee Only / Cross cheque</label></div>
+    <div class="field"><label>Payment description (internal record)</label><input id="description" placeholder="e.g. Spare parts invoice"></div>
+   </div>
+   <div class="actions"><button class="primary" id="previewBtn">Update Preview</button><button id="saveBtn">Save Payment Record</button><button class="primary" id="printBtn">Print Cheque</button><button id="clearBtn">Clear Form</button></div>
+   <p class="muted">Print on plain paper first to verify positioning. Use the bank's original cheque leaf only after alignment is confirmed.</p>
+  </div>
+  <div class="panel print-panel">
+   <h2 class="no-print">Cheque preview (sample layout)</h2>
+   <div id="cheque">
+    <div class="printfield accountpayee" id="pCross"></div>
+    <div class="printfield date" id="pDate">DD / MM / YYYY</div>
+    <div class="printfield payee" id="pPayee">PAY TO THE ORDER OF</div>
+    <div class="printfield words" id="pWords">RUPEES IN WORDS</div>
+    <div class="printfield amount" id="pAmount">PKR 0.00</div>
+   </div>
+   <p class="muted previewnote no-print">This is a positioning template, not an exact HBL cheque design. Field locations must be calibrated against your own blank cheque leaf.</p>
+  </div>
+ </section>
+
+ <section id="vendors" class="section hidden">
+  <div class="panel">
+   <h2>Vendor management</h2>
+   <div class="grid"><div><label>Vendor name</label><input id="vName" placeholder="Vendor / supplier name"></div><div><label>Phone (optional)</label><input id="vPhone" placeholder="Phone number"></div></div>
+   <div class="actions"><button class="primary" id="addVendor">Add Vendor</button></div>
+  </div>
+  <div class="panel"><h2>Saved vendors</h2><div id="vendorTable"></div></div>
+ </section>
+
+ <section id="history" class="section hidden">
+  <div class="panel"><h2>Payment history</h2><div id="historyTable"></div></div>
+ </section>
+
+ <section id="settings" class="section hidden">
+  <div class="panel">
+   <h2>Laser printer alignment</h2>
+   <p class="muted">Adjust positions in millimetres. Positive X moves right; positive Y moves down. Settings are saved in this browser.</p>
+   <div class="grid">
+    <div><label>Payee — X (mm)</label><input type="number" id="payeeX" step="0.5"></div><div><label>Payee — Y (mm)</label><input type="number" id="payeeY" step="0.5"></div>
+    <div><label>Date — X (mm)</label><input type="number" id="dateX" step="0.5"></div><div><label>Date — Y (mm)</label><input type="number" id="dateY" step="0.5"></div>
+    <div><label>Amount — X (mm)</label><input type="number" id="amountX" step="0.5"></div><div><label>Amount — Y (mm)</label><input type="number" id="amountY" step="0.5"></div>
+    <div><label>Words — X (mm)</label><input type="number" id="wordsX" step="0.5"></div><div><label>Words — Y (mm)</label><input type="number" id="wordsY" step="0.5"></div>
+   </div>
+   <div class="actions"><button class="primary" id="applyAlign">Apply Alignment</button><button id="resetAlign">Reset Defaults</button></div>
+  </div>
+ </section>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
+const set=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+let vendors=get('kmm_vendors',[]), history=get('kmm_history',[]);
+const defaults={payeeX:17,payeeY:35,dateX:82,dateY:15,amountX:80,amountY:54,wordsX:8,wordsY:54};
+let align={...defaults,...get('kmm_align',{})};
+function words(n){
+ if(!isFinite(n)||n<0)return ''; n=Math.round(n*100)/100;
+ const ones=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+ const tens=['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+ function under1000(x){let s='';if(x>=100){s+=ones[Math.floor(x/100)]+' hundred';x%=100;if(x)s+=' ';}if(x>=20){s+=tens[Math.floor(x/10)];if(x%10)s+=' '+ones[x%10];}else if(x)s+=ones[x];return s;}
+ let whole=Math.floor(n),paisa=Math.round((n-whole)*100),parts=[];
+ const scales=[[10000000,'crore'],[100000,'lakh'],[1000,'thousand'],[1,'']];
+ for(const [v,name] of scales){if(whole>=v){let q=Math.floor(whole/v);parts.push(under1000(q)+(name?' '+name:''));whole%=v;}}
+ if(!parts.length)parts.push('zero');
+ return (parts.join(' ')+' rupees'+(paisa?' and '+under1000(paisa)+' paisa':' only')).toUpperCase();
+}
+function update(){
+ const p=$('payee').value||'PAY TO THE ORDER OF', d=$('date').value, a=Number($('amount').value||0);
+ $('words').textContent=$('amount').value?words(a):'Amount in words will appear here.';
+ $('pPayee').textContent=p.toUpperCase();$('pDate').textContent=d?d.split('-').reverse().join(' / '):'DD / MM / YYYY';
+ $('pWords').textContent=$('amount').value?words(a):'RUPEES IN WORDS';
+ $('pAmount').textContent='PKR '+a.toLocaleString('en-PK',{minimumFractionDigits:2,maximumFractionDigits:2});
+ $('pCross').textContent=$('cross').checked?'A/C PAYEE ONLY':'';
+}
+function renderVendors(){
+ $('vendorList').innerHTML=vendors.map(v=>`<option value="${esc(v.name)}">`).join('');
+ $('vendorTable').innerHTML=vendors.length?`<table><thead><tr><th>Vendor</th><th>Phone</th><th></th></tr></thead><tbody>${vendors.map((v,i)=>`<tr><td>${esc(v.name)}</td><td>${esc(v.phone||'')}</td><td><button class="danger" onclick="deleteVendor(${i})">Delete</button></td></tr>`).join('')}</tbody></table>`:'<p class="muted">No vendors saved yet.</p>';
+}
+function renderHistory(){
+ $('historyTable').innerHTML=history.length?`<table><thead><tr><th>Date</th><th>Vendor</th><th>Cheque No.</th><th>Amount (PKR)</th><th>Description</th></tr></thead><tbody>${history.slice().reverse().map(h=>`<tr><td>${esc(h.date)}</td><td>${esc(h.payee)}</td><td>${esc(h.chequeNo||'—')}</td><td>${Number(h.amount).toLocaleString('en-PK',{minimumFractionDigits:2})}</td><td>${esc(h.description||'')}</td></tr>`).join('')}</tbody></table>`:'<p class="muted">No payment records saved yet.</p>';
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+window.deleteVendor=i=>{vendors.splice(i,1);set('kmm_vendors',vendors);renderVendors()};
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.section').forEach(s=>s.classList.toggle('hidden',s.id!==b.dataset.tab));}));
+['payee','date','amount','cross'].forEach(id=>$(id).addEventListener('input',update));
+$('previewBtn').onclick=update;
+$('clearBtn').onclick=()=>{['payee','amount','chequeNo','description'].forEach(id=>$(id).value='');$('cross').checked=false;update()};
+$('saveBtn').onclick=()=>{if(!$('payee').value.trim()||!$('amount').value||Number($('amount').value)<=0){alert('Enter a vendor/payee and a valid amount first.');return;}history.push({payee:$('payee').value,date:$('date').value,amount:Number($('amount').value),chequeNo:$('chequeNo').value,description:$('description').value});set('kmm_history',history);renderHistory();alert('Payment record saved in this browser.')};
+$('printBtn').onclick=()=>{update();window.print()};
+$('addVendor').onclick=()=>{let name=$('vName').value.trim();if(!name){alert('Enter vendor name.');return;}vendors.push({name,phone:$('vPhone').value.trim()});set('kmm_vendors',vendors);$('vName').value='';$('vPhone').value='';renderVendors()};
+function apply(){for(const k of Object.keys(defaults)){let el=$(k);el.value=align[k];}let c=$('cheque');[['payee','payee'],['date','date'],['amount','amount'],['words','words']].forEach(([id,key])=>{let e=$('p'+id[0].toUpperCase()+id.slice(1));e.style.left=align[key+'X']+'%';e.style.top=align[key+'Y']+'%';});}
+$('applyAlign').onclick=()=>{for(const k of Object.keys(defaults))align[k]=Number($(k).value)||0;set('kmm_align',align);apply();};
+$('resetAlign').onclick=()=>{align={...defaults};set('kmm_align',align);apply()};
+$('date').value=new Date().toISOString().slice(0,10);
+renderVendors();renderHistory();apply();update();
+</script>
+</body></html>
